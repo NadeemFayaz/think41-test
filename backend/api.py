@@ -64,3 +64,41 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+#orders api 
+class OrderCreate(BaseModel):
+    user_id: int
+    product_name: str
+    quantity: int
+class OrderResponse(BaseModel):
+    id: int
+    user_id: int
+    product_name: str
+    quantity: int
+@app.post("/orders/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+def create_order(order: OrderCreate, db: Session = Depends(get_db)):
+    db_order = order(user_id=order.user_id, product_name=order.product_name, quantity=order.quantity)
+    db.add(db_order)
+    db.commit()
+    db.refresh(db_order)
+    return db_order
+
+@app.get("/orders/", response_model=List[OrderResponse])
+def get_orders(db: Session = Depends(get_db)):
+    orders = db.query(Order).all()
+    return orders
+@app.get("/orders/{order_id}", response_model=Optional[OrderResponse])
+def get_order(order_id: int, db: Session = Depends(get_db)):
+    order = db.query(order).filter(order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted successfully"}
